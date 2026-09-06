@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Custom range slider styling */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0E4B47;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transition: transform 0.1s ease;
+}
+
+input[type='range']::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+.dark input[type='range']::-webkit-slider-thumb {
+  border-color: #0a322f;
+  background: #4d9d93;
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0E4B47;
+  cursor: pointer;
+  border: 3px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dark input[type='range']::-moz-range-thumb {
+  border-color: #0a322f;
+  background: #4d9d93;
+}
+
+/* Scrollbar */
+.results-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.results-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.results-scroll::-webkit-scrollbar-thumb {
+  background: rgba(14, 75, 71, 0.25);
+  border-radius: 9999px;
+}
+.dark .results-scroll::-webkit-scrollbar-thumb {
+  background: rgba(77, 157, 147, 0.3);
+}
