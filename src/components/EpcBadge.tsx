@@ -1,4 +1,5 @@
 import { Building, EPC_COLORS } from '@/types';
+import { MapPin } from 'lucide-react';
 
 export function EpcBadge({ letter }: { letter: string }) {
   const c = EPC_COLORS[letter] ?? EPC_COLORS['G'];
@@ -12,6 +13,11 @@ export function EpcBadge({ letter }: { letter: string }) {
   );
 }
 
+function buildMapsUrl(b: Building): string {
+  const query = [b.name, b.postcode].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 export function BuildingCard({
   building,
   rank,
@@ -22,8 +28,16 @@ export function BuildingCard({
   onClick: () => void;
 }) {
   return (
-    <button
+    <div
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className="group flex items-center gap-4 w-full text-left p-4 rounded-xl bg-white dark:bg-teal-900/40 border border-sand-200 dark:border-teal-800/50 hover:border-teal-400 dark:hover:border-teal-500/60 hover:shadow-md transition-all duration-150 cursor-pointer"
     >
       {/* Rank */}
@@ -54,12 +68,26 @@ export function BuildingCard({
         <p className="text-xs text-teal-600/60 dark:text-teal-200/50">m²</p>
       </div>
 
+      {/* View on map */}
+      <a
+        href={buildMapsUrl(building)}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-teal-600 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-800/50 transition-colors"
+        title="View on Google Maps"
+        aria-label={`View ${building.name} on Google Maps`}
+      >
+        <MapPin className="w-3.5 h-3.5" />
+        <span className="hidden sm:inline">Map</span>
+      </a>
+
       {/* Tenure */}
       <div className="flex-shrink-0 hidden sm:block">
         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-sand-100 dark:bg-teal-800/60 text-teal-700 dark:text-teal-200">
           {building.tenure}
         </span>
       </div>
-    </button>
+    </div>
   );
 }

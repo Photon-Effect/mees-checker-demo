@@ -3,7 +3,7 @@ import { Building, EPC_LETTERS, FilterState, SortDirection } from '@/types';
 import { FilterPanel } from '@/components/FilterPanel';
 import { BuildingCard } from '@/components/EpcBadge';
 import { BuildingDetailModal } from '@/components/BuildingDetailModal';
-import { Building2, SlidersHorizontal } from 'lucide-react';
+import { Building2, SlidersHorizontal, Sparkles, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 export default function App() {
@@ -21,6 +21,11 @@ export default function App() {
 
   const [isDark, setIsDark] = useState(false);
   const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+
+  // Analysis state
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const closeModal = useCallback(() => setSelectedBuilding(null), []);
 
@@ -109,6 +114,59 @@ export default function App() {
     return sorted;
   }, [buildings, filterState]);
 
+  // Clear analysis when filters change so the displayed analysis always matches the current list
+  useEffect(() => {
+    setAnalysis(null);
+    setAnalysisError(null);
+  }, [filterState]);
+
+  const handleAnalyse = useCallback(async () => {
+    setAnalysisLoading(true);
+    setAnalysisError(null);
+    setAnalysis(null);
+
+    try {
+      const payload = results.map((b) => ({
+        name: b.name,
+        sector: b.sector,
+        floor_area: b.floor_area,
+        epc_letter: b.epc_letter,
+      }));
+
+      const functionUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze`;
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ buildings: payload }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      if (!data.analysis) {
+        throw new Error('The analysis service returned an unexpected response. Please try again.');
+      }
+
+      setAnalysis(data.analysis);
+    } catch (err) {
+      setAnalysisError(
+        err instanceof Error
+          ? err.message
+          : 'Something went wrong while analysing the buildings. Please try again.'
+      );
+    } finally {
+      setAnalysisLoading(false);
+    }
+  }, [results]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-sand-50 dark:bg-teal-950 flex items-center justify-center">
@@ -161,7 +219,7 @@ export default function App() {
 
           {/* Results */}
           <main className="flex-1 min-w-0">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-2">
                 <SlidersHorizontal className="w-4 h-4 text-teal-600 dark:text-teal-300 hidden lg:block" />
                 <p className="text-sm text-teal-700 dark:text-teal-200/80">
@@ -171,7 +229,62 @@ export default function App() {
                   {' buildings match'}
                 </p>
               </div>
+              <button
+                onClick={handleAnalyse}
+                disabled={analysisLoading || results.length === 0}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Sparkles className="w-4 h-4" />
+                {analysisLoading ? 'Thinking…' : 'Analyse this list'}
+              </button>
             </div>
+
+            {/* Analysis card */}
+            {analysisLoading && (
+              <div className="mb-4 p-4 rounded-xl bg-white dark:bg-teal-900/40 border border-sand-200 dark:border-teal-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-300 animate-pulse" />
+                  <span className="text-sm font-semibold text-teal-900 dark:text-sand-50">
+                    Analysing {results.length} buildings…
+                  </span>
+                </div>
+                <div className="space-y-2">
+                  <div className="h-3 bg-sand-100 dark:bg-teal-800/50 rounded animate-pulse" style={{ width: '100%' }} />
+                  <div className="h-3 bg-sand-100 dark:bg-teal-800/50 rounded animate-pulse" style={{ width: '90%' }} />
+                  <div className="h-3 bg-sand-100 dark:bg-teal-800/50 rounded animate-pulse" style={{ width: '75%' }} />
+                </div>
+              </div>
+            )}
+
+            {analysisError && !analysisLoading && (
+              <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-red-800 dark:text-red-200">
+                      {analysisError}
+                    </p>
+                    <p className="text-xs text-red-600/70 dark:text-red-300/60 mt-1">
+                      Adjust your filters or try again in a moment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {analysis && !analysisLoading && (
+              <div className="mb-4 p-4 rounded-xl bg-white dark:bg-teal-900/40 border border-sand-200 dark:border-teal-800/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-teal-600 dark:text-teal-300" />
+                  <span className="text-sm font-semibold text-teal-900 dark:text-sand-50">
+                    Analysis
+                  </span>
+                </div>
+                <p className="text-sm text-teal-700 dark:text-teal-200/80 leading-relaxed">
+                  {analysis}
+                </p>
+              </div>
+            )}
 
             {results.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
